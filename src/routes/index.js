@@ -45,7 +45,7 @@ router.get('/out/clear', async (req, res) => {
         const ids = new Array();
         let finder = await Number.find({editing: true});
         if(!finder || finder.length < 1){
-            return res.status(200).json({isOk: false, message: `No se encontraros numeros`});
+            return res.status(200).json({isOk: false, message: `No se encontraros numeros.`});
         }
 
         finder.forEach(obj => ids.push(obj._id));
