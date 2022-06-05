@@ -1,0 +1,349 @@
+const express = require('express');
+const router = express.Router();
+const path   = require('path');
+const fs     = require('fs');
+const Number = require('../models/number');
+
+router.get('/', function (req, res) {
+    res.send('Online');
+})
+
+router.get('/add', function (req, res) {
+    res.render("index");
+})
+  
+router.get('/out/get', async (req, res) => {
+    try {
+        const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true}, {new: true});
+        if(!results){
+            return res.status(200).json({ok: false, message: "Error obteniendo y actualizando numero."})
+        }
+
+        // let number = results.number.trim();
+        // number = number.replace(/\r?\n|\r/g, "");
+
+        // const result = {
+        //     id: results._id,
+        //     number: number,
+        //     provider: results.provider,
+        //     ifprovider: results.ifprovider,
+        //     active: results.active,
+        //     editing: results.editing
+        // }
+
+        // console.log("Result => ", result)
+
+        return res.status(200).json({ok:true, result: results});
+    } catch (error) {
+        console.log("Error => ", error);
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo y actualizando el numero"});
+    }
+})
+
+router.get('/out/clear', async (req, res) => {
+    try {
+        const ids = new Array();
+        let finder = await Number.find({editing: true});
+        if(!finder || finder.length < 1){
+            return res.status(200).json({isOk: false, message: `No se encontraros numeros`});
+        }
+
+        finder.forEach(obj => ids.push(obj._id));
+        const result = await Number.updateMany({_id: {$in: ids}}, {"$set":{"editing": false}});
+        if(!result || result.modifiedCount < 1){
+            return res.status(200).json({isOk: false, message: `Error restaurando numeros`});
+        }
+
+        return res.status(200).json({isOk: true, quanty: finder.length});
+    } catch (error) {
+        return res.status(200).json({isOk: false, message: "Error inesperado en catch"});
+    }
+})
+
+router.put('/out/upd', async (req, res) => {
+    try {
+        const number = req.body.number;
+        const provider = req.body.provider;
+
+        let finalNumber = number.trim();
+        finalNumber = finalNumber.replace(/ /g, "");
+
+        // Ficha.find({ etiquetas: { $regex : coindicidencia, $options: 'i' } });
+        // const result = await Number.findOneAndUpdate({number: finalNumber}, {provider: provider, ifprovider: true, editing: false}, {new: true});
+        const result = await Number.findOneAndUpdate({ number: { $regex : finalNumber, $options: 'i' } }, {provider: provider, ifprovider: true, editing: false}, {new: true});
+        if(!result){
+            console.log("Error => ", result);
+            return res.status(200).json({ok: false, message: "Error actualizando numero."})
+        }
+
+        return res.status(200).json({ok:true, version: 'editing', result});
+    } catch (error) {
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado actualizando el numero"});
+    }
+})
+
+router.put('/editing', async function (req, res) {
+    try {
+        const ids = new Array();
+        let finder = await Number.find({});
+        if(!finder || finder.length < 1){
+            return res.status(200).json({isOk: false, message: "No se encontraron numeros"});
+        }
+        finder.forEach(obj => ids.push(obj._id));
+    
+        const result = await Number.updateMany({_id: {$in: ids}}, {"$set":{"editing": false}});
+        if(!result || result.modifiedCount < 1){
+            return res.status(200).json({isOk: false, message: "Error modificando numeros"});
+        }
+    
+        return res.status(200).json({isOk: true, result, numbers: finder.length});
+    } catch (error) {
+        return res.status(200).json({isOk: false, message: "Error modificando numeros"});
+    }
+})
+
+router.post('/out/add', async (req, res) => {
+    const {number, provider} = req.body;
+
+    if(!number || !provider) {
+        return res.status(200).json({ok: false, message: "Informacion requerida"})
+    }
+
+    try {
+        const result = await Number.findOne({number});
+        if(result){
+            return res.status(200).json({ok: false, message: "El numero ya existe"})
+        }
+        newNumber = new Number({
+            number,
+            provider: (provider === 'NO' || provider.length < 4) ? 'NO VERIFICADO' : provider,
+            ifprovider: (provider.length > 3) ? true : false
+        });
+        await newNumber.save();
+        return res.status(200).json({ok:true, message: "Numero Agregado!"});
+    } catch (error) {
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado agregando el numero"});
+    }
+});
+
+router.post('/out/add-bulk', async (req, res) => {
+    try {
+        const bulk = req.body.bulk;
+        if(!bulk) {
+            return res.status(200).json({ok: false, message: "Informacion requerida"});
+        }
+    
+        let lists = bulk.split('\n');
+        const numbers = new Array();
+        const depureNumbers = new Array();
+        let repeadCounter = 0;
+    
+        // ddd = '829749180,no; 8496539180,claro; 8297802234,no';
+    
+        if(!lists || !lists.length){
+            return res.status(200).json({ok: false, message: "Empty list"});
+        }
+    
+        for (let index = 0; index < lists.length; index++) {
+            let list = lists[index];
+    
+            if(!list || !list.length) continue;
+    
+            let data = list.split(',');
+    
+            if(!data[0] || !data[0].length || !data[1] || !data[1].length) {
+                continue;
+            }
+    
+            let number   = data[0].trim();
+            let provider = data[1].trim();
+    
+            numbers.push({
+                number,
+                provider: (provider === 'NO' || provider.length < 4) ? 'NO VERIFICADO' : provider,
+                fprovider: (provider.length > 3) ? true : false
+            });
+        }
+    
+        if(!numbers || !numbers.length){
+            return res.status(200).json({ok:false, message: 'Error ingresando numeros'});
+        }
+    
+        for (let i = 0; i < numbers.length; i++) {
+            const element = numbers[i];
+            const exits = await Number.findOne({number: element.number});
+            if(exits){
+                repeadCounter++;
+                continue;
+            }
+            depureNumbers.push(element);
+        }
+    
+        if(!depureNumbers || !depureNumbers.length){
+            return res.status(200).json({ok:false, message: `Error numeros Repetidos(${repeadCounter})`});
+        }
+    
+        Number.insertMany(depureNumbers)
+            .then(function(docs) {
+                let pls1 = docs.length > 1 ? 's' : '';
+                let pls2 = repeadCounter > 1 ? 's' : '';
+    
+                return res.status(200).json({
+                    ok: true, 
+                    message: `${docs.length} numero${pls1} ingresado${pls1}!`, 
+                    repead : `${repeadCounter} numero${pls2} repetido${pls2}`
+                });
+            })
+            .catch(function(err) {
+                return res.status(200).json({ok:false, message: 'Error ingresando numeros'});
+            });
+    } catch (error) {
+        
+    }
+});
+
+router.post('/out/add-numbers', async (req, res) => {
+    try {
+        // req.setTimeout(500000);
+        // req.setTimeout(0)
+        if(!req.files || !req.files.file){
+            return res.render("index", {isOk: false, message: 'Debe Seleccionar un archivo de texto'});
+        }
+
+        let ehloq = req.files.file;
+        if(!ehloq || !ehloq.name){
+            return res.render("index", {isOk: false, message: 'Archivo Invalido'});
+        }
+
+        const numbers = clearText(ehloq.data);
+        if(!numbers || !numbers.isOk){
+            return res.render("index", {isOk: false, message: numbers.message});
+        }
+
+        if(!numbers.result.length){
+            return res.render("index", {isOk: false, message: 'No se encontraron numeros validos para ingresar.'});
+        }
+
+        // console.log("NUMBERS =>", numbers.result);
+        // return res.render("index", {isOk: true, message: `xxx!`});
+    
+        Number.insertMany(numbers.result)
+            .then(function(docs) {
+                let pls1 = docs.length > 1 ? 's' : '';
+                return res.render("index", {isOk: true, message: `${docs.length} numero${pls1} ingresado${pls1}!`});
+            })
+            .catch(function(err) {
+                console.log("Error => ", err);
+                return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
+            });
+    } catch (error) {
+        return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
+    }
+});
+
+router.put('/out/del', async (req, res) => {
+    try {
+        const number = req.body.number;
+        // const idNumber = req.body.idNumber;
+        // console.log("idNumber => ", idNumber);
+
+        let finalNumber = number.trim();
+        finalNumber = finalNumber.replace(/ /g, "");
+
+        const result = await Number.deleteMany({ number: { $regex : finalNumber, $options: 'i' } });
+        // const result = await Number.deleteOne({ _id: idNumber });
+
+        if(!result || !result.deletedCount){
+            console.log("Error => ", result);
+            return res.status(200).json({ok: false, message: "Error eliminando numero."})
+        }
+
+        return res.status(200).json({ok:true, version: 'eliminado', result});
+    } catch (error) {
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado eliminando el numero"});
+    }
+})
+
+function clearText(data){
+    try {
+        const readyNumber = new Array();
+        const numbers = data.toString()
+                            .split('\n')
+                            .filter(Boolean);
+
+        for (let index = 0; index < numbers.length; index++) {
+            let current = numbers[index].trim();
+            current = current.replace(/ /g, "");
+            const number = current.substr(-10,current.length);
+
+            if(!number || !number.length){
+                continue;
+            }
+    
+            if(number.length !== 10) {
+                continue;
+            }
+            // if(readyNumber.find(n => n.number === number)){
+            //     continue;
+            // }
+            // if( !(number.match(/\d/g)) || !(number.match(/\d/g).length===10)){
+            //     continue;
+            // }    
+            readyNumber.push({number: number});
+        }
+        return {isOk: true, result: readyNumber}
+    } catch (error) {
+        console.log("Error => ", error);
+        return {isOk: false, message: "Hubo un error inesperado."}
+    }
+}
+
+// router.post('/out/add-numbers', async (req, res) => {
+//     try {
+//         if(!req.body.txtarea) {
+//             return res.render("index", {isOk: false, message: 'Informacion requerida'});
+//         }
+    
+//         const txtarea = req.body.txtarea.trim();
+//         let lists = txtarea.split('\n');
+//         const numbers = new Array();
+     
+    
+//         if(!lists || !lists.length){
+//             return res.render("index", {isOk: false, message: 'Lista Vacia'});
+//         }
+    
+//         for (let index = 0; index < lists.length; index++) {
+//             let number = lists[index];
+//             number = number.replace(/\r?\n|\r/g, "");
+//             number = number.substr(-10,number.length);
+//             if(!number || number.length !== 10) continue;
+    
+//             numbers.push({
+//                 number,
+//                 provider: 'NO VERIFICADO',
+//                 fprovider: false
+//             });
+//         }
+    
+//         if(!numbers || !numbers.length){
+//             return res.render("index", {isOk: false, message: 'No se encontraron numeros validos'});
+//         }
+
+//         return res.render("index", {isOk: true, message: `xxx!`});
+    
+//         // Number.insertMany(numbers)
+//         //     .then(function(docs) {
+//         //         let pls1 = docs.length > 1 ? 's' : '';
+//         //         return res.render("index", {isOk: true, message: `${docs.length} numero${pls1} ingresado${pls1}!`});
+//         //     })
+//         //     .catch(function(err) {
+//         //         return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
+//         //     });
+//     } catch (error) {
+//         console.log("ERROR => ", error);
+//         return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
+//     }
+// });
+
+module.exports = router;

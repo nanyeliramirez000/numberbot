@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="shortcut icon" href="/img/favicon.png" type="image/x-icon">
+
+        <!-- CSS only -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+
+        <style>
+            .ehloq{
+                text-align: center;
+                margin: auto;
+            }
+
+            .message .success{
+                color: green;
+            }
+
+            .message .error{
+                color: red;
+            }
+
+            .lds-facebook {
+                display: inline-block;
+                position: relative;
+                width: 80px;
+                height: 80px;
+            }
+            .lds-facebook div {
+                display: inline-block;
+                position: absolute;
+                left: 8px;
+                width: 16px;
+                background: #0275d8;
+                animation: lds-facebook 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+            }
+            .lds-facebook div:nth-child(1) {
+                left: 8px;
+                animation-delay: -0.24s;
+            }
+            .lds-facebook div:nth-child(2) {
+                left: 32px;
+                animation-delay: -0.12s;
+            }
+            .lds-facebook div:nth-child(3) {
+                left: 56px;
+                animation-delay: 0;
+            }
+            @keyframes lds-facebook {
+                0% {
+                    top: 8px;
+                    height: 64px;
+                }
+                50%, 100% {
+                    top: 24px;
+                    height: 32px;
+                }
+            }
+            
+            #kbBtnFile {
+                font-family: calibri;
+                width: 250px;
+                padding: 10px;
+                font-size: 20px;
+                -webkit-border-radius: 5px;
+                -moz-border-radius: 5px;
+                border: 1px dashed #BBB;
+                text-align: center !important;
+                margin: auto !important;
+                background-color: #DDD;
+                cursor: pointer;
+            }
+        </style>
+
+        <title>Numeros</title>
+
+        <!-- JavaScript Bundle with Popper -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <br>
+
+        <div style="text-align: start;margin-left: 20px;cursor: pointer" class="">
+            <a href="/add">
+                <img src="https://firebasestorage.googleapis.com/v0/b/english-academy-kb.appspot.com/o/scm-resources%2Frestart.png?alt=media&token=445696c9-b07c-47ec-8e78-d37314e081bb" alt="Reiniciar" width="50" srcset="">
+            </a>
+        </div>
+
+
+        {{!-- <br> --}}
+        <div class="container ehloq mt-4 mb-4">
+            <h1>Numeros</h1>
+        </div>
+
+        <div style="max-width: 500px" class="container ehloq">
+
+            <form id="kbform" method="post" action="/out/add-numbers" enctype="multipart/form-data">
+               
+                <div class="container">
+                    <div id="kbBtnFile" onclick="getFile()">Subir Archivo</div>
+                    <div style='height: 0px;width: 0px; overflow:hidden;'>
+                        <input id="upfile" name="file" type="file" value="upload" onchange="sub(this)" />
+                    </div>
+                </div>
+
+                {{!-- <form action="#type your action here" method="POST" enctype="multipart/form-data" name="myForm">
+                    <div id="yourBtn" onclick="getFile()">click to upload a file</div>
+                    <div style='height: 0px;width: 0px; overflow:hidden;'>
+                        <input id="upfile" type="file" value="upload" onchange="sub(this)" />
+                    </div>
+                </form> --}}
+
+                <div class="message mb-4">
+                    {{#if isOk}}
+                        <p class="success">{{message}}</p>
+                    {{else}}
+                        <p class="error">{{message}}</p>
+                    {{/if}}
+                </div>
+
+                <div id="kbbutton">
+                    <button type="submit" class="btn btn-primary mb-2">Ingresar Numeros</button>
+                </div>
+
+                <div id="kbloading" style="display: none">
+                    <div>
+                        <div class="lds-facebook"><div></div><div></div><div></div></div>
+                    </div>
+                    Cargando Numeros...
+                </div>
+            </form>
+
+        </div>
+
+
+        <script>
+            var kbForm = document.getElementById("kbform");
+
+            kbForm.addEventListener("submit", function(e) {
+                var form = e.target;
+                document.getElementById("kbloading").style.display = "block";
+                document.getElementById("kbbutton").style.display = "none";
+                {{!-- document.getElementById("upfile").setAttribute('disabled', 'disabled'); --}}
+            });
+
+            function getFile() {
+                document.getElementById("upfile").click();
+            }
+
+            function sub(obj) {
+                var file = obj.value;
+                var fileName = file.split("\\");
+
+                //document.getElementById("kbBtnFile").innerHTML = fileName[fileName.length - 1];
+                let current = fileName[fileName.length - 1];
+
+                if(!current || !current.length) {
+                    document.getElementById("kbBtnFile").innerHTML = "Subir Archivo";
+                }else{
+                    lastFile = current;
+                    document.getElementById("kbBtnFile").innerHTML = current;
+                }
+
+                if(document.getElementsByClassName('error')[0]){
+                    document.getElementsByClassName('error')[0].style.display = "none";
+                }
+                if(document.getElementsByClassName('success')[0]){
+                    document.getElementsByClassName('success')[0].style.display = "none";
+                }
+                //document.myForm.submit();
+                event.preventDefault();
+            }
+        </script>
+
+    </body>
+</html>
