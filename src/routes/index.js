@@ -11,6 +11,37 @@ router.get('/', function (req, res) {
 router.get('/add', function (req, res) {
     res.render("index");
 })
+
+// router.get('/all', async function (req, res) {
+//     try {
+//         const results = await Number.find({});
+//         if(!results){
+//             return res.status(200).json({ok: false, message: "Error obteniendo los numeros"})
+//         }
+
+
+//         let numbers = "";
+//         for (let index = 0; index < results.length; index++) {
+//             const current = results[index];
+//             numbers += `${current.number}\n`;
+//         }
+
+//         console.log("Salio");
+//         saveList(numbers);
+
+//         return res.status(200).json({ok:true, result: results.length});
+//     } catch (error) {
+//         return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo los numeros"});
+//     }
+// })
+
+// function saveList(list){
+//     fs.writeFile(`ready_numbers.txt`, list, (err) => {
+//         if(err){ console.log("hubo error"); return false;}
+//         console.log("*** Lista guardada con exito! ***");
+//         // process.exit(0);
+//     });
+// }
   
 router.get('/out/get', async (req, res) => {
     try {
@@ -32,10 +63,10 @@ router.get('/out/get', async (req, res) => {
         // }
 
         // console.log("Result => ", result)
-
+        console.log(`Numero Obtenido (${results.number})`);
         return res.status(200).json({ok:true, result: results});
     } catch (error) {
-        console.log("Error => ", error);
+        console.log("Error '/out/get' => ", error);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo y actualizando el numero"});
     }
 })
@@ -54,8 +85,10 @@ router.get('/out/clear', async (req, res) => {
             return res.status(200).json({isOk: false, message: `Error restaurando numeros`});
         }
 
+        console.log(`Numeros Restaurados (${finder.length})`);
         return res.status(200).json({isOk: true, quanty: finder.length});
     } catch (error) {
+        console.log("Error '/out/clear' => ", error);
         return res.status(200).json({isOk: false, message: "Error inesperado en catch"});
     }
 })
@@ -76,8 +109,10 @@ router.put('/out/upd', async (req, res) => {
             return res.status(200).json({ok: false, message: "Error actualizando numero."})
         }
 
+        console.log(`Numero Actualizado (${result.number})`);
         return res.status(200).json({ok:true, version: 'editing', result});
     } catch (error) {
+        console.log("Error '/out/upd' => ", error);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado actualizando el numero"});
     }
 })
@@ -96,8 +131,10 @@ router.put('/editing', async function (req, res) {
             return res.status(200).json({isOk: false, message: "Error modificando numeros"});
         }
     
+        console.log(`Editando Numero (${result.number})`);
         return res.status(200).json({isOk: true, result, numbers: finder.length});
     } catch (error) {
+        console.log("Error '/editing' => ", error);
         return res.status(200).json({isOk: false, message: "Error modificando numeros"});
     }
 })
@@ -120,8 +157,10 @@ router.post('/out/add', async (req, res) => {
             ifprovider: (provider.length > 3) ? true : false
         });
         await newNumber.save();
+        console.log(`Numero Agregado (${result.number})`);
         return res.status(200).json({ok:true, message: "Numero Agregado!"});
     } catch (error) {
+        console.log("Error '/out/add' => ", error);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado agregando el numero"});
     }
 });
@@ -187,6 +226,8 @@ router.post('/out/add-bulk', async (req, res) => {
             .then(function(docs) {
                 let pls1 = docs.length > 1 ? 's' : '';
                 let pls2 = repeadCounter > 1 ? 's' : '';
+
+                console.log(`Numeros Agregados (${docs.length})`);
     
                 return res.status(200).json({
                     ok: true, 
@@ -195,10 +236,12 @@ router.post('/out/add-bulk', async (req, res) => {
                 });
             })
             .catch(function(err) {
+                console.log("Error '/out/add-bulk' => ", err);
                 return res.status(200).json({ok:false, message: 'Error ingresando numeros'});
             });
     } catch (error) {
-        
+        console.log("Error catch '/out/add-bulk' => ", error);
+        return res.status(200).json({ok:false, message: 'Error ingresando numeros'});
     }
 });
 
@@ -230,13 +273,16 @@ router.post('/out/add-numbers', async (req, res) => {
         Number.insertMany(numbers.result)
             .then(function(docs) {
                 let pls1 = docs.length > 1 ? 's' : '';
+
+                console.log(`Numeros Agregados (${docs.length})`);
                 return res.render("index", {isOk: true, message: `${docs.length} numero${pls1} ingresado${pls1}!`});
             })
             .catch(function(err) {
-                console.log("Error => ", err);
+                console.log("Error '/out/add-numbers' => ", err);
                 return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
             });
     } catch (error) {
+        console.log("Error catch '/out/add-bulk' => ", error);
         return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
     }
 });
@@ -250,16 +296,19 @@ router.put('/out/del', async (req, res) => {
         let finalNumber = number.trim();
         finalNumber = finalNumber.replace(/ /g, "");
 
-        const result = await Number.deleteMany({ number: { $regex : finalNumber, $options: 'i' } });
-        // const result = await Number.deleteOne({ _id: idNumber });
+        // const result = await Number.deleteMany({ number: { $regex : finalNumber, $options: 'i' } });
+        const result = await Number.deleteMany({number:number});
+
 
         if(!result || !result.deletedCount){
-            console.log("Error => ", result);
+            console.log("Error '/out/del' => ", result);
             return res.status(200).json({ok: false, message: "Error eliminando numero."})
         }
 
+        console.log(`Numeros Eliminado (${finalNumber})`);
         return res.status(200).json({ok:true, version: 'eliminado', result});
     } catch (error) {
+        console.log("Error catch '/out/del' => ", result);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado eliminando el numero"});
     }
 })
