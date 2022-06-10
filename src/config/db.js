@@ -10,7 +10,7 @@ const dbUri = process.env.MONGODB_URI || "mongodb://localhost/numberdb";
 
 const connectDB = async () => {
     try {
-      await mongoose.connect(dbUri2, {
+      await mongoose.connect(dbUri, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
         // useCreateIndex: true,
