@@ -5,7 +5,10 @@ const fs     = require('fs');
 const Number = require('../models/number');
 
 router.get('/', function (req, res) {
-    res.send('Online');
+    res.status(200).json({
+        ok: true,
+        server: 'ONLINE'
+    })
 })
 
 router.get('/add', function (req, res) {
@@ -26,6 +29,8 @@ router.get('/add', function (req, res) {
 //             numbers += `${current.number}\n`;
 //         }
 
+//         console.log(numbers.length, "NUMEROS")
+
 //         console.log("Salio");
 //         saveList(numbers);
 
@@ -45,26 +50,37 @@ router.get('/add', function (req, res) {
   
 router.get('/out/get', async (req, res) => {
     try {
-        const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true}, {new: true});
-        if(!results){
-            return res.status(200).json({ok: false, message: "Error obteniendo y actualizando numero."})
+        const results = await Number.aggregate([
+            {
+                $match: {
+                    ifprovider: false,
+                    editing: false
+                }
+            },
+            { $sample: { size: 1 } }
+        ]);
+
+        if (results.length) {
+            await Number.updateOne(
+              { _id: results[0]._id }, 
+              {editing: true}
+            ); 
+
+            console.log(`Numero Obtenido (${results[0].number})`);
+            return res.status(200).json({ok:true, result: results[0]});
+        }else{
+            console.log("No se encontro ningun numero '/out/get'");
+            return res.status(200).json({ok:false, result: "No se encontro ningun numero"});
         }
 
-        // let number = results.number.trim();
-        // number = number.replace(/\r?\n|\r/g, "");
-
-        // const result = {
-        //     id: results._id,
-        //     number: number,
-        //     provider: results.provider,
-        //     ifprovider: results.ifprovider,
-        //     active: results.active,
-        //     editing: results.editing
+        // const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true}, {new: true});
+        // if(!results){
+        //     return res.status(200).json({ok: false, message: "Error obteniendo y actualizando numero."})
         // }
 
-        // console.log("Result => ", result)
-        console.log(`Numero Obtenido (${results.number})`);
-        return res.status(200).json({ok:true, result: results});
+        // console.log(`Numero Obtenido (${results.number})`);
+        // return res.status(200).json({ok:true, result: results});
+
     } catch (error) {
         console.log("Error '/out/get' => ", error);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo y actualizando el numero"});
@@ -73,20 +89,13 @@ router.get('/out/get', async (req, res) => {
 
 router.get('/out/clear', async (req, res) => {
     try {
-        const ids = new Array();
-        let finder = await Number.find({editing: true});
-        if(!finder || finder.length < 1){
-            return res.status(200).json({isOk: false, message: `No se encontraros numeros.`});
-        }
-
-        finder.forEach(obj => ids.push(obj._id));
-        const result = await Number.updateMany({_id: {$in: ids}}, {"$set":{"editing": false}});
+        const result = await Number.updateMany({}, {"$set":{"editing": false}});
         if(!result || result.modifiedCount < 1){
             return res.status(200).json({isOk: false, message: `Error restaurando numeros`});
         }
 
-        console.log(`Numeros Restaurados (${finder.length})`);
-        return res.status(200).json({isOk: true, quanty: finder.length});
+        console.log(`Numeros Restaurados (${result.modifiedCount})`);
+        return res.status(200).json({isOk: true, quanty: result.modifiedCount});
     } catch (error) {
         console.log("Error '/out/clear' => ", error);
         return res.status(200).json({isOk: false, message: "Error inesperado en catch"});
@@ -95,25 +104,25 @@ router.get('/out/clear', async (req, res) => {
 
 router.put('/out/upd', async (req, res) => {
     try {
-        const number = req.body.number;
+        const number   = req.body.number;
+        const numberId = req.body.numberId;
         const provider = req.body.provider;
 
-        let finalNumber = number.trim();
-        finalNumber = finalNumber.replace(/ /g, "");
+        const result = await Number.updateOne(
+            { _id: numberId }, 
+            {provider: provider, ifprovider: true, editing: false}
+        );
 
-        // Ficha.find({ etiquetas: { $regex : coindicidencia, $options: 'i' } });
-        // const result = await Number.findOneAndUpdate({number: finalNumber}, {provider: provider, ifprovider: true, editing: false}, {new: true});
-        const result = await Number.findOneAndUpdate({ number: { $regex : finalNumber, $options: 'i' } }, {provider: provider, ifprovider: true, editing: false}, {new: true});
-        if(!result){
-            console.log("Error => ", result);
-            return res.status(200).json({ok: false, message: "Error actualizando numero."})
+        if(!result || result.modifiedCount < 1){
+            console.log("Error '/out/upd' => ", result);
+            return res.status(200).json({ok: false, message: "Error actualizando numero '/out/upd'."})
         }
 
-        console.log(`Numero Actualizado (${result.number})`);
-        return res.status(200).json({ok:true, version: 'editing', result});
+        console.log(`Numero Actualizado (${number})`);
+        return res.status(200).json({ok:true, version: 'editing', number: number});
     } catch (error) {
-        console.log("Error '/out/upd' => ", error);
-        return res.status(200).json({ok: false, message: "Hubo un error inesperado actualizando el numero"});
+        console.log("Error catch '/out/upd' => ", error);
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado actualizando el numero '/out/upd'"});
     }
 })
 
@@ -247,8 +256,6 @@ router.post('/out/add-bulk', async (req, res) => {
 
 router.post('/out/add-numbers', async (req, res) => {
     try {
-        // req.setTimeout(500000);
-        // req.setTimeout(0)
         if(!req.files || !req.files.file){
             return res.render("index", {isOk: false, message: 'Debe Seleccionar un archivo de texto'});
         }
@@ -267,9 +274,6 @@ router.post('/out/add-numbers', async (req, res) => {
             return res.render("index", {isOk: false, message: 'No se encontraron numeros validos para ingresar.'});
         }
 
-        // console.log("NUMBERS =>", numbers.result);
-        // return res.render("index", {isOk: true, message: `xxx!`});
-    
         Number.insertMany(numbers.result)
             .then(function(docs) {
                 let pls1 = docs.length > 1 ? 's' : '';
@@ -289,24 +293,17 @@ router.post('/out/add-numbers', async (req, res) => {
 
 router.put('/out/del', async (req, res) => {
     try {
-        const number = req.body.number;
-        // const idNumber = req.body.idNumber;
-        // console.log("idNumber => ", idNumber);
+        const number   = req.body.number;
+        const numberId = req.body.numberId;
 
-        let finalNumber = number.trim();
-        finalNumber = finalNumber.replace(/ /g, "");
-
-        // const result = await Number.deleteMany({ number: { $regex : finalNumber, $options: 'i' } });
-        const result = await Number.deleteMany({number:number});
-
-
-        if(!result || !result.deletedCount){
+        const result = await Number.deleteOne({_id: numberId});
+        if(!result || result.deletedCount < 1){
             console.log("Error '/out/del' => ", result);
             return res.status(200).json({ok: false, message: "Error eliminando numero."})
         }
 
-        console.log(`Numeros Eliminado (${finalNumber})`);
-        return res.status(200).json({ok:true, version: 'eliminado', result});
+        console.log(`Numeros Eliminado (${number})`);
+        return res.status(200).json({ok:true, version: 'eliminado', number: number});
     } catch (error) {
         console.log("Error catch '/out/del' => ", result);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado eliminando el numero"});
