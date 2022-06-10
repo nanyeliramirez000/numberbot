@@ -13,16 +13,21 @@ async function getCount() {
         const total = await Number.count().exec();
         const wProvider = await Number.find({ifprovider: true}).count().exec();
 
+        console.log("TOTAL => ", total)
+        console.log("wProvider => ", wProvider)
+
         const sProvider = total - wProvider;
 
+        console.log("sProvider => ", sProvider)
+
         if(!total || !wProvider) {
-            return {isOk: false, message: "Hubo un error obteniendo contro"};
+            return {isOk: false, message: "Hubo un error obteniendo conteo"};
         }
 
-        const count = `CON PROVEEDOR : ${convert(wProvider)} \n\nSIN PROVEEDOR   : ${convert(sProvider)} \n\nTOTAL NUMEROS : ${convert(total)}`
+        const count = `CON PROVEEDOR : ${convert(wProvider)} \n\nSIN PROVEEDOR   : ${convert(sProvider)} \n\nTOTAL NUMEROS : ${convert(total)}`;
         return {isOk: true, count};
     } catch (error) {
-        return {isOk: false, message: "Hubo un error obteniendo contro"};
+        return {isOk: false, message: "Hubo un error obteniendo conteo"};
     }
 }
 
