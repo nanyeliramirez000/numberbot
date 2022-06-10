@@ -43,7 +43,7 @@ const usersChat = [
   {user: "koby" , chat: 951742175}
 ];
 
-const COMMANDS = `LISTADO DE COMANDOS\n\n* Obtener Reportes *\n   reporte\n   compañias\n   contador\n   proveedores\n\n* Restaurar Numbers *\n   clear\n   limpiar\n   restaurar\n\n* Agregar Numeros *\n   add\n   agregar\n\n* Obtener Numeros *\n   get:telcel:0\n   get:movistar:100\n\n* Obtener y Marcar como Usados *\n   upd:at&t:100\n   update:altan:0\n\n* Eliminar Numeros *\n   del:all\n   del:tercel:100\n`;
+const COMMANDS = `LISTADO DE COMANDOS\n\n* Obtener Conteo *\n   count\n   total\n   conteo\n   cantidad\n\n* Obtener Reportes *\n   reporte\n   compañias\n   contador\n   proveedores\n\n* Restaurar Numbers *\n   clear\n   limpiar\n   restaurar\n\n* Agregar Numeros *\n   add\n   agregar\n\n* Obtener Numeros *\n   get:telcel:0\n   get:movistar:100\n\n* Obtener y Marcar como Usados *\n   upd:at&t:100\n   update:altan:0\n\n* Eliminar Numeros *\n   del:all\n   del:tercel:100\n`;
 
 bot.start((ctx) => {
   ctx.reply(COMMANDS);
@@ -62,8 +62,17 @@ bot.on('text', async (ctx) => {
     const response = await getReport();
     ctx.reply(response.toUpperCase());
 
+  }else if(message === "count" 
+    || message === "total" 
+    || message === "conteo" 
+    || message === "cantidad")
+  {
+
+    const response = await getCount();
+    ctx.reply(response.toUpperCase());
+
   }else if(message === "add" || message === "agregar"){
-    ctx.reply('https://number.cellzonestore.com.mx/add');
+    ctx.reply('https://numberbot.info/add');
   }else if(message.match(/get:/gi)){
 
     const response = await getNumbers(message);
@@ -199,6 +208,15 @@ async function getReport(){
   }
 
   return providers;
+}
+
+async function getCount(){
+  const count = await controller.getCount();
+  if(!count || !count.isOk){
+    return count.message;
+  }
+
+  return count;
 }
 
 async function getNumbers(message){

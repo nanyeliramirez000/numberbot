@@ -89,7 +89,7 @@ router.get('/out/get', async (req, res) => {
 
 router.get('/out/clear', async (req, res) => {
     try {
-        const result = await Number.updateMany({}, {"$set":{"editing": false}});
+        const result = await Number.updateMany({editing: true}, {"$set":{"editing": false}});
         if(!result || result.modifiedCount < 1){
             return res.status(200).json({isOk: false, message: `Error restaurando numeros`});
         }

@@ -8,15 +8,22 @@ async function getStats() {
     }
 }
 
+async function getCount() {
+    try {
+        const result = await Number.count().exec();
+        if(!result) {
+            return {isOk: false, message: "Hubo un error obteniendo contro"};
+        }
+
+        return {isOk: true, count: result};
+    } catch (error) {
+        return {isOk: false, message: "Hubo un error obteniendo contro"};
+    }
+}
+
 async function getProviders(){
     try {
         const obj = {active: true};
-
-        // const resp = await Number.aggregate([
-        //     {$match:{$or: [ obj ]}},
-        //     { $group: { _id: {country: '$country', code: '$countryCode', active: '$active'}, count:{$sum: 1}}}
-        // ])
-
         const ranking = await Number.aggregate([
             {$match:{$or: [ obj ]}},
             { $group: { _id: {provider: '$provider', active: '$active'}, count:{$sum: 1}}}
@@ -90,29 +97,14 @@ async function getAndUpdateNumbers(message) {
 
 async function clearEditting(){
     try {
-        const ids = new Array();
-        let finder = await Number.find({editing: true});
-        // let finder = await Number.find({ifprovider: false});
-        if(!finder || finder.length < 1){
+        const result = await Number.updateMany({editing: true}, {"$set":{"editing": false}});
+        if(!result || result.modifiedCount < 1){
             return {isOk: false, message: `No se encontraros numeros`};
         }
 
-        finder.forEach(obj => ids.push(obj._id));
-        const result = await Number.updateMany({_id: {$in: ids}}, {"$set":{"editing": false}});
-        // const result = await Number.updateMany({_id: {$in: ids}}, {"$set":{"active": false}});
-        if(!result || result.modifiedCount < 1){
-            return {isOk: false, message: `Error restaurando numeros`};
-        }
-
-        // const all = new Array();
-        // finder.forEach((f) => {
-        //     all.push()
-        // })
-
-
-        return {isOk: true, quanty: finder.length};
+        return {isOk: true, quanty: result.modifiedCount};
     } catch (error) {
-        
+        return {isOk: false}
     }
 }
 
@@ -166,7 +158,8 @@ async function restoreDB(){
 }
 
 module.exports = {
-    getStats, 
+    getStats,
+    getCount,
     getProviders, 
     getNumbers, 
     getAndUpdateNumbers, 
