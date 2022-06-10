@@ -10,15 +10,25 @@ async function getStats() {
 
 async function getCount() {
     try {
-        const result = await Number.count().exec();
-        if(!result) {
+        const total = await Number.count().exec();
+        const wProvider = await Number.find({ifprovider: true}).count().exec();
+
+        const sProvider = total - wProvider;
+
+        if(!total || !wProvider) {
             return {isOk: false, message: "Hubo un error obteniendo contro"};
         }
 
-        return {isOk: true, count: result};
+        const count = `CON PROVEEDOR : ${convert(wProvider)} \n\nSIN PROVEEDOR   : ${convert(sProvider)} \n\nTOTAL NUMEROS : ${convert(total)}`
+        return {isOk: true, count};
     } catch (error) {
         return {isOk: false, message: "Hubo un error obteniendo contro"};
     }
+}
+
+function convert(count){
+    let value = count.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    return value.substr(0, value.length - 3); 
 }
 
 async function getProviders(){

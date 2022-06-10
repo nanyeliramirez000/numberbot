@@ -69,7 +69,7 @@ bot.on('text', async (ctx) => {
   {
 
     const response = await getCount();
-    ctx.reply(response.toUpperCase());
+    ctx.reply(response.toString().toUpperCase());
 
   }else if(message === "add" || message === "agregar"){
     ctx.reply('https://numberbot.info/add');
@@ -211,12 +211,12 @@ async function getReport(){
 }
 
 async function getCount(){
-  const count = await controller.getCount();
-  if(!count || !count.isOk){
-    return count.message;
+  const data = await controller.getCount();
+  if(!data || !data.isOk){
+    return data.message;
   }
 
-  return count;
+  return data.count;
 }
 
 async function getNumbers(message){
