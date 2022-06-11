@@ -50,36 +50,36 @@ router.get('/add', function (req, res) {
   
 router.get('/out/get', async (req, res) => {
     try {
-        const results = await Number.aggregate([
-            {
-                $match: {
-                    ifprovider: false,
-                    editing: false
-                }
-            },
-            { $sample: { size: 1 } }
-        ]);
+        // const results = await Number.aggregate([
+        //     {
+        //         $match: {
+        //             ifprovider: false,
+        //             editing: false
+        //         }
+        //     },
+        //     { $sample: { size: 1 } }
+        // ]);
 
-        if (results.length) {
-            await Number.updateOne(
-              { _id: results[0]._id }, 
-              {editing: true}
-            ); 
+        // if (results.length) {
+        //     await Number.updateOne(
+        //       { _id: results[0]._id }, 
+        //       {editing: true}
+        //     ); 
 
-            console.log(`Numero Obtenido (${results[0].number})`);
-            return res.status(200).json({ok:true, result: results[0]});
-        }else{
-            console.log("No se encontro ningun numero '/out/get'");
-            return res.status(200).json({ok:false, result: "No se encontro ningun numero"});
-        }
-
-        // const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true}, {new: true});
-        // if(!results){
-        //     return res.status(200).json({ok: false, message: "Error obteniendo y actualizando numero."})
+        //     console.log(`Numero Obtenido (${results[0].number})`);
+        //     return res.status(200).json({ok:true, result: results[0]});
+        // }else{
+        //     console.log("No se encontro ningun numero '/out/get'");
+        //     return res.status(200).json({ok:false, result: "No se encontro ningun numero"});
         // }
 
-        // console.log(`Numero Obtenido (${results.number})`);
-        // return res.status(200).json({ok:true, result: results});
+        const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true}, {new: true});
+        if(!results){
+            return res.status(200).json({ok: false, message: "Error obteniendo y actualizando numero."})
+        }
+
+        console.log(`Numero Obtenido (${results.number})`);
+        return res.status(200).json({ok:true, result: results});
 
     } catch (error) {
         console.log("Error '/out/get' => ", error);
