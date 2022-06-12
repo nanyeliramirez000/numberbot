@@ -5,5 +5,8 @@ module.exports = {
     watch: '.',
     instances : "max",
     exec_mode : "cluster"
+  }, {
+    script: './service-worker/',
+    watch: ['./service-worker']
   }]
 };
