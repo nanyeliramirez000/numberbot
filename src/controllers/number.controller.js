@@ -10,8 +10,9 @@ async function getStats() {
 
 async function getCount() {
     try {
-        const total = await Number.count().exec();
-        const wProvider = await Number.find({ifprovider: true}).count().exec();
+        // const total = await Number.count().exec();
+        const total = await Number.find({active: true}).count().exec();
+        const wProvider = await Number.find({active: true, ifprovider: true}).count().exec();
 
         const sProvider = total - wProvider;
 
@@ -54,9 +55,9 @@ async function getNumbers(message) {
         let result = undefined;
 
         if(quanty > 0){
-            result = await Number.find({provider, diacriticSensitive: false}).limit(quanty);
+            result = await Number.find({active: true, provider, diacriticSensitive: false}).limit(quanty);
         }else{
-            result = await Number.find({provider, diacriticSensitive: false});
+            result = await Number.find({active: true, provider, diacriticSensitive: false});
         }
 
         if(!result || result.length < 1){
@@ -103,7 +104,7 @@ async function getAndUpdateNumbers(message) {
 
 async function clearEditting(){
     try {
-        const result = await Number.updateMany({editing: true}, {"$set":{"editing": false}});
+        const result = await Number.updateMany({active: true, editing: true}, {"$set":{"editing": false}});
         if(!result || result.modifiedCount < 1){
             return {isOk: false, message: `No se encontraros numeros`};
         }
@@ -120,19 +121,26 @@ async function deleteNumbers(message) {
         const provider = command[1].toUpperCase();
         const quanty   = parseInt(command[2]);
 
-        let result = undefined;
+        // let result = undefined;
 
-        if(quanty > 0){
-            result = await Number.deleteMany({provider: provider});
-        }else{
-            result = await Number.deleteMany({provider: provider});
-        }
+        // if(quanty > 0){
+        //     result = await Number.deleteMany({provider: provider});
+        // }else{
+        //     result = await Number.deleteMany({provider: provider});
+        // }
 
-        if(!result || !result.deletedCount){
+        // if(!result || !result.deletedCount){
+        //     return {isOk: false, message: `No se encontraron numeros de ${provider}`};
+        // }
+        // return {isOk: true, quanty: result.deletedCount, privider: provider};
+
+        const result = await Number.updateMany({active: true, provider: provider}, {"$set":{"active": false}});
+        if(!result || result.modifiedCount < 1){
             return {isOk: false, message: `No se encontraron numeros de ${provider}`};
         }
-        
-        return {isOk: true, quanty: result.deletedCount, privider: provider};
+
+        return {isOk: true, quanty: result.modifiedCount, privider: provider};
+
     } catch (error) {
         return {isOk: false, message: "Hubo un error inesperado."}
     }
@@ -140,11 +148,18 @@ async function deleteNumbers(message) {
 
 async function deleteAll(){
     try {
-        const result = await Number.deleteMany({ifprovider: true});
-        if(!result || !result.deletedCount){
-            return {isOk: false, message: `Hubo un error al intentar borrar todos los números`};
+        // const result = await Number.deleteMany({ifprovider: true});
+        // if(!result || !result.deletedCount){
+        //     return {isOk: false, message: `Hubo un error al intentar borrar todos los números`};
+        // }
+        // return {isOk: true, quanty: result.deletedCount};
+
+        const result = await Number.updateMany({active: true, ifprovider: true}, {"$set":{"active": false}});
+        if(!result || result.modifiedCount < 1){
+            return {isOk: false, message: 'Hubo un error al intentar borrar todos los números'};
         }
-        return {isOk: true, quanty: result.deletedCount};
+
+        return {isOk: true, quanty: result.modifiedCount};
     } catch (error) {
         return {isOk: false, message: "Hubo un error inesperado."}
     }

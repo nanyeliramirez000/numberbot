@@ -15,38 +15,37 @@ router.get('/add', function (req, res) {
     res.render("index");
 })
 
-// router.get('/all', async function (req, res) {
-//     try {
-//         const results = await Number.find({});
-//         if(!results){
-//             return res.status(200).json({ok: false, message: "Error obteniendo los numeros"})
-//         }
+router.get('/all', async function (req, res) {
+    try {
+        const results = await Number.find({});
+        if(!results){
+            return res.status(200).json({ok: false, message: "Error obteniendo los numeros"})
+        }
 
+        let numbers = "";
+        for (let index = 0; index < results.length; index++) {
+            const current = results[index];
+            numbers += `${current.number}:${current.provider}\n`;
+        }
 
-//         let numbers = "";
-//         for (let index = 0; index < results.length; index++) {
-//             const current = results[index];
-//             numbers += `${current.number}\n`;
-//         }
+        console.log(numbers.length, "NUMEROS")
 
-//         console.log(numbers.length, "NUMEROS")
+        console.log("Salio");
+        saveList(numbers);
 
-//         console.log("Salio");
-//         saveList(numbers);
+        return res.status(200).json({ok:true, result: results.length});
+    } catch (error) {
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo los numeros"});
+    }
+})
 
-//         return res.status(200).json({ok:true, result: results.length});
-//     } catch (error) {
-//         return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo los numeros"});
-//     }
-// })
-
-// function saveList(list){
-//     fs.writeFile(`ready_numbers.txt`, list, (err) => {
-//         if(err){ console.log("hubo error"); return false;}
-//         console.log("*** Lista guardada con exito! ***");
-//         // process.exit(0);
-//     });
-// }
+function saveList(list){
+    fs.writeFile(`ready_numbers.txt`, list, (err) => {
+        if(err){ console.log("hubo error"); return false;}
+        console.log("*** Lista guardada con exito! ***");
+        // process.exit(0);
+    });
+}
   
 router.get('/out/get', async (req, res) => {
     try {
@@ -73,10 +72,11 @@ router.get('/out/get', async (req, res) => {
         //     return res.status(200).json({ok:false, result: "No se encontro ningun numero"});
         // }
 
-        const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true}, {new: true});
+        // , {new: true}
+        const results = await Number.findOneAndUpdate({ifprovider: false, editing: false}, {editing: true});
         if(!results){
             return res.status(200).json({ok: false, message: "Error obteniendo y actualizando numero."})
-        }
+        } 
 
         console.log(`Numero Obtenido (${results.number})`);
         return res.status(200).json({ok:true, result: results});
@@ -304,6 +304,20 @@ router.put('/out/del', async (req, res) => {
 
         console.log(`Numeros Eliminado (${number})`);
         return res.status(200).json({ok:true, version: 'eliminado', number: number});
+    } catch (error) {
+        console.log("Error catch '/out/del' => ", result);
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado eliminando el numero"});
+    }
+})
+
+router.put('/out/del/inactive', async (req, res) => {
+    try {
+        const result = await Number.deleteMany({active: false});
+        if(!result || !result.deletedCount){
+            return {isOk: false, message: `No se encontraron numeros para eliminar`};
+        }
+        console.log(`Numeros Eliminado (${result.deletedCount})`);
+        return {isOk: true, quanty: result.deletedCount};
     } catch (error) {
         console.log("Error catch '/out/del' => ", result);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado eliminando el numero"});
