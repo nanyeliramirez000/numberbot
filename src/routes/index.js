@@ -312,39 +312,24 @@ router.put('/out/del', async (req, res) => {
 
 router.put('/out/del/inactive', async (req, res) => {
     try {
-
-        // let finder = await Number.find({});
+        // let finder = await Number.find({active: false}).limit(500000);
         // if(!finder || finder.length < 1){
         //     return res.status(200).json({isOk: false, message: "No se encontraron numeros"});
         // }
         // finder.forEach(obj => ids.push(obj._id));
-    
-        // const result = await Number.updateMany({_id: {$in: ids}}, {"$set":{"editing": false}});
+
+        // const result = await Number.deleteMany({_id: {$in: ids}});
         // if(!result || result.modifiedCount < 1){
         //     return res.status(200).json({isOk: false, message: "Error modificando numeros"});
         // }
-    
-        // console.log(`Editando Numero (${result.number})`);
-        // return res.status(200).json({isOk: true, result, numbers: finder.length});
+        // return res.status(200).json({isOk: true, numbers: finder.length});
 
-        let finder = await Number.find({active: false}).limit(500000);
-        if(!finder || finder.length < 1){
-            return res.status(200).json({isOk: false, message: "No se encontraron numeros"});
+        const result = await Number.deleteMany({active: false});
+        if(!result || !result.deletedCount){
+            return {isOk: false, message: `No se encontraron numeros para eliminar`};
         }
-        finder.forEach(obj => ids.push(obj._id));
-
-        const result = await Number.deleteMany({_id: {$in: ids}});
-        if(!result || result.modifiedCount < 1){
-            return res.status(200).json({isOk: false, message: "Error modificando numeros"});
-        }
-        return res.status(200).json({isOk: true, numbers: finder.length});
-
-        // const result = await Number.deleteMany({active: false});
-        // if(!result || !result.deletedCount){
-        //     return {isOk: false, message: `No se encontraron numeros para eliminar`};
-        // }
-        // console.log(`Numeros Eliminado (${result.deletedCount})`);
-        // return {isOk: true, quanty: result.deletedCount};
+        console.log(`Numeros Eliminado (${result.deletedCount})`);
+        return {isOk: true, quanty: result.deletedCount};
     } catch (error) {
         console.log("Error catch '/out/del' => ", result);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado eliminando el numero"});
