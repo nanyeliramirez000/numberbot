@@ -46,6 +46,55 @@ function saveList(list){
         // process.exit(0);
     });
 }
+
+//for download
+router.get('/out/download/:provider', async (req, res) => {
+    try {
+        const provider = req.params.provider;
+        const results = await Number.find({provider});
+        if(!results || !results.length){
+            return res.status(200).json({ok: false, message: "Hubo un error obteniendo numeros de "+provider})
+        } 
+
+        let numberResults = '';
+        for (let i = 0; i < results.length; i++) {
+            numberResults += `${results[i].number}\n`;
+        }
+
+        const now= new Date();
+        const identifier = `${provider}_${now.getTime()}.txt`;
+
+        const savTxt = await saveTxt(identifier, numberResults);
+        if(!savTxt || !savTxt.isOk) {
+            return res.status(200).json({ok:false, message: `Hubo un error guardando la lista de ${provider}`});
+        }
+
+        const options = {
+            root: path.join(__dirname, '../documents')
+        };
+
+        // console.log(`(${results.length}) Numeros de (${provider}) para descargar!`);
+        res.sendFile(identifier, options, async function(err) {
+            if (err) {
+                console.log(`Hubo un error descargando la lista de ${provider}`)
+            } else {
+                try {
+                    const result = await Number.deleteMany({provider});
+                    if(!result.acknowledged || !result.deletedCount){
+                        console.log(`Lista de ${provider}(${results.length}) descargada pero no eliminada`);
+                    }else{
+                        console.log(`Lista de ${provider}(${results.length}) descargada con exito!`);
+                    }
+                } catch (error) {
+                    console.log(`Lista de ${provider}(${results.length}) descargada pero no eliminada`);
+                }
+            }
+        });
+    } catch (error) {
+        console.log("Error '/out/download' => ", error);
+        return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo y actualizando el numero"});
+    }
+})
   
 router.get('/out/get', async (req, res) => {
     try {
@@ -324,8 +373,8 @@ router.put('/out/del/inactive', async (req, res) => {
         // }
         // return res.status(200).json({isOk: true, numbers: finder.length});
 
-        // active: false
-        const result = await Number.deleteMany({});
+        // 
+        const result = await Number.deleteMany({active: false});
         if(!result || !result.deletedCount){
             return {isOk: false, message: `No se encontraron numeros para eliminar`};
         }
@@ -418,5 +467,20 @@ function clearText(data){
 //         return res.render("index", {isOk: false, message: 'Error ingresando numeros'});
 //     }
 // });
+
+
+function saveTxt(fileName, list){
+    const location = path.join(__dirname, '../documents', fileName);
+    console.log("location => ", location);
+    return new Promise(function(resolve) {
+      fs.writeFile(location, list, (err) => {
+          if(err){ 
+            console.log("Error => ", err);
+            return resolve({isOk: false, message: 'ERROR GUARDANDO EL ARCHIVO'});
+          }
+          return resolve({isOk: true, location})
+      });
+    });
+}
 
 module.exports = router;
