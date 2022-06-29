@@ -373,8 +373,8 @@ router.put('/out/del/inactive', async (req, res) => {
         // }
         // return res.status(200).json({isOk: true, numbers: finder.length});
 
-        // 
-        const result = await Number.deleteMany({active: false});
+        // {active: false}
+        const result = await Number.deleteMany();
         if(!result || !result.deletedCount){
             return {isOk: false, message: `No se encontraron numeros para eliminar`};
         }
