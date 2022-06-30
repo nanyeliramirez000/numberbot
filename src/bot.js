@@ -23,6 +23,8 @@ app.use(express.json());
 app.use(fileUpload());
 app.use(express.urlencoded({ extended: false }));
 
+app.use('/documents', express.static(__dirname + '/documents'));
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header(
