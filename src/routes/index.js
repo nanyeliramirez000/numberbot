@@ -39,14 +39,6 @@ router.get('/all', async function (req, res) {
     }
 })
 
-function saveList(list){
-    fs.writeFile(`ready_numbers.txt`, list, (err) => {
-        if(err){ console.log("hubo error"); return false;}
-        console.log("*** Lista guardada con exito! ***");
-        // process.exit(0);
-    });
-}
-
 //for download
 router.get('/out/download/:provider', async (req, res) => {
     try {
@@ -94,6 +86,43 @@ router.get('/out/download/:provider', async (req, res) => {
         console.log("Error '/out/download' => ", error);
         return res.status(200).json({ok: false, message: "Hubo un error inesperado obteniendo y actualizando el numero"});
     }
+})
+
+// download file by name
+router.get('/download/:fileName', async (req, res) => {
+    const fileName = req.params.fileName;
+    const location = path.join(__dirname, '../documents', fileName);
+
+    res.download(location, async (err) => {
+        if(err) {
+            console.log(err);
+            return res.status(200).json({
+                isOk: false,
+                message: "ERROR DESCARGARDO EL ARCHIVO DE NUMEROS VERIFICADOS"
+            })
+        }
+        console.log("ARCHIVO DESCARGADO CORRECTAMENTE!");
+    })
+})
+
+// delete file by name
+router.get('/delete/:fileName', async (req, res) => {
+    const fileName = req.params.fileName;
+    const location = path.join(__dirname, '../documents', fileName);
+
+
+    const response = await deleteFile(location);
+    if(!response || !response.isOk){
+        return res.status(200).json({
+            isOk: false,
+            message: response.message
+        })
+    }
+
+    res.status(200).json({
+        isOk: true,
+        message: 'ARCHIVO '+fileName+' ELIMINADO CORRECTAMENTE!'
+    })
 })
   
 router.get('/out/get', async (req, res) => {
@@ -419,6 +448,25 @@ function clearText(data){
         return {isOk: false, message: "Hubo un error inesperado."}
     }
 }
+
+function saveList(list){
+    fs.writeFile(`ready_numbers.txt`, list, (err) => {
+        if(err){ console.log("hubo error"); return false;}
+        console.log("*** Lista guardada con exito! ***");
+        // process.exit(0);
+    });
+}
+
+const deleteFile = (location) => {
+    return new Promise(function(resolve) {
+        fs.unlink(location, function(err) {
+            if (err){
+                return resolve({isOk: false, message: `ERROR ELIMINANDO ARCHIVO`});
+            }
+            return resolve({isOk: true, message: 'ARCHIVO ELIMINANDO CON EXITO!'});
+        });
+    });
+} 
 
 // router.post('/out/add-numbers', async (req, res) => {
 //     try {
